@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="pt-MZ">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NampulaExpress | Marketplace Oficial da Cidade de Nampula</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .ali-gradient { background: linear-gradient(90deg, #ff4747 0%, #ff6a00 100%); }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
+
+  <!-- BARRA DE TOPO -->
+  <div class="bg-gray-900 text-gray-300 text-xs py-2 px-4">
+    <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
+      <div class="flex items-center space-x-4">
+        <span><i class="fa-solid fa-shield-halved text-green-400 mr-1"></i> Plataforma Oficial Verificada | Nampula, Moçambique</span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <button onclick="openModal('vendorRegisterModal')" class="text-orange-400 hover:underline font-bold">
+          <i class="fa-solid fa-file-signature mr-1"></i> 1. Registar Minha Empresa / Hotel
+        </button>
+        <button onclick="openModal('vendorPostModal')" class="bg-orange-600 hover:bg-orange-700 text-white px-2.5 py-1 rounded font-bold">
+          <i class="fa-solid fa-plus mr-1"></i> 2. Publicar Artigo (Área da Loja)
+        </button>
+        <button onclick="openModal('authModal')" id="userStatusBtn" class="hover:text-white">
+          <i class="fa-solid fa-user mr-1"></i> Conta Cliente
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CABEÇALHO -->
+  <header class="bg-white shadow-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-2 cursor-pointer" onclick="filterCategory('todos')">
+        <div class="ali-gradient text-white p-2 rounded-lg font-extrabold text-xl tracking-tight">
+          Nampula<span class="text-yellow-200">Express</span>
+        </div>
+      </div>
+
+      <div class="flex-1 max-w-2xl flex border-2 border-orange-500 rounded-full overflow-hidden bg-gray-50">
+        <select id="bairroFilter" onchange="renderProducts()" class="bg-gray-100 text-xs sm:text-sm px-3 border-r border-gray-300 text-gray-700 focus:outline-none">
+          <option value="todos">Todos os Bairros</option>
+          <option value="Baixa">Baixa (Centro)</option>
+          <option value="Muhala">Muhala Expansão</option>
+          <option value="Muahivire">Muahivire</option>
+          <option value="Napipine">Napipine</option>
+          <option value="Natikiri">Natikiri</option>
+          <option value="Carrupeia">Carrupeia</option>
+        </select>
+        <input type="text" id="searchInput" oninput="renderProducts()" placeholder="Pesquisar artigos, pratos ou quartos reais em Nampula..." class="w-full px-4 py-2 text-sm bg-transparent focus:outline-none">
+        <button onclick="renderProducts()" class="ali-gradient text-white px-5 font-semibold text-sm">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+      </div>
+
+      <button onclick="openModal('installmentsModal')" class="bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center">
+        <i class="fa-solid fa-calendar-check mr-2 text-base"></i>
+        <span>Minhas Reservas / Prestações</span>
+        <span id="activeReservationsBadge" class="ml-2 bg-red-600 text-white text-xs rounded-full px-2 py-0.5">0</span>
+      </button>
+    </div>
+
+    <div class="bg-gray-50 border-t border-gray-200 px-4 py-2">
+      <div class="max-w-7xl mx-auto flex space-x-2 overflow-x-auto text-xs sm:text-sm font-medium">
+        <button onclick="filterCategory('todos')" class="cat-btn ali-gradient text-white px-4 py-1.5 rounded-full whitespace-nowrap" data-cat="todos">Tudo em Nampula</button>
+        <button onclick="filterCategory('roupas')" class="cat-btn bg-white hover:bg-gray-200 text-gray-700 border px-4 py-1.5 rounded-full whitespace-nowrap" data-cat="roupas"><i class="fa-solid fa-shirt mr-1 text-pink-600"></i> Lojas e Moda</button>
+        <button onclick="filterCategory('comida')" class="cat-btn bg-white hover:bg-gray-200 text-gray-700 border px-4 py-1.5 rounded-full whitespace-nowrap" data-cat="comida"><i class="fa-solid fa-utensils mr-1 text-orange-600"></i> Restaurantes e Comida</button>
+        <button onclick="filterCategory('hoteis')" class="cat-btn bg-white hover:bg-gray-200 text-gray-700 border px-4 py-1.5 rounded-full whitespace-nowrap" data-cat="hoteis"><i class="fa-solid fa-bed mr-1 text-blue-600"></i> Hotéis e Hospedarias</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- VITRINE DE ARTIGOS REAIS -->
+  <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-bold text-gray-800">Vitrine Oficial de Nampula</h2>
+      <span id="resultsCount" class="text-xs text-gray-500">A ligar ao servidor...</span>
+    </div>
+    <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5"></div>
+  </main>
+
+  <!-- MODAL 1: REGISTO DE EMPRESA + CONTRATO + PAGAMENTO REAL DA TAXA MENSAL -->
+  <div id="vendorRegisterModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 my-8">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div>
+          <span class="text-xs font-bold text-orange-600 uppercase">Passo 1: Domiciliação Oficial</span>
+          <h3 class="text-lg font-bold">Registar Empresa, Assinar Contrato e Pagar Taxa Mensal</h3>
+        </div>
+        <button onclick="closeModal('vendorRegisterModal')" class="text-gray-400 hover:text-gray-700 text-xl">&times;</button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div>
+          <label class="font-bold text-gray-700">Nome Oficial da Loja / Hotel:</label>
+          <input type="text" id="regName" placeholder="Nome real do estabelecimento" class="w-full border rounded-lg p-2 mt-1">
+        </div>
+        <div>
+          <label class="font-bold text-gray-700">NUIT (Serve como Chave de Acesso da Loja):</label>
+          <input type="text" id="regNuit" placeholder="Ex: 400123456" class="w-full border rounded-lg p-2 mt-1">
+        </div>
+        <div>
+          <label class="font-bold text-gray-700">Categoria de Atividade:</label>
+          <select id="regCategory" onchange="updateVendorFee()" class="w-full border rounded-lg p-2 mt-1">
+            <option value="roupas" data-fee="1500">Comércio / Loja Física (Taxa: 1.500 MT/mês)</option>
+            <option value="comida" data-fee="1500">Restaurante / Gastronomia (Taxa: 1.500 MT/mês)</option>
+            <option value="hoteis" data-fee="2500">Hotel / Hospedaria / Pensão (Taxa: 2.500 MT/mês)</option>
+          </select>
+        </div>
+        <div>
+          <label class="font-bold text-gray-700">Bairro em Nampula:</label>
+          <select id="regBairro" class="w-full border rounded-lg p-2 mt-1">
+            <option value="Baixa">Baixa (Centro)</option>
+            <option value="Muhala">Muhala Expansão</option>
+            <option value="Muahivire">Muahivire</option>
+            <option value="Napipine">Napipine</option>
+            <option value="Natikiri">Natikiri</option>
+            <option value="Carrupeia">Carrupeia</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- CONTAS REAIS DA LOJA PARA RECEBER DOS CLIENTES -->
+      <div class="bg-blue-50 p-3 rounded-xl border border-blue-200 space-y-2 text-xs">
+        <div class="font-bold text-blue-900"><i class="fa-solid fa-building-columns mr-1"></i> Contas Reais do Estabelecimento (Onde a tua loja vai receber os pagamentos dos clientes):</div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <input type="text" id="regStoreMpesa" placeholder="Nº M-Pesa da Loja (84/85)" class="border rounded p-2">
+          <input type="text" id="regStoreEmola" placeholder="Nº e-Mola da Loja (86/87)" class="border rounded p-2">
+          <input type="text" id="regStoreIban" placeholder="NIB / Conta Visa da Loja" class="border rounded p-2">
+        </div>
+      </div>
+
+      <!-- CONTRATO JURÍDICO -->
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-gray-700">Contrato Digital de Domiciliação Comercial (Cidade de Nampula):</label>
+        <div class="bg-gray-50 border rounded-lg p-3 h-28 overflow-y-auto text-[11px] text-gray-600 space-y-1.5">
+          <p><strong>1. OBJETO:</strong> O estabelecimento identificado pelo NUIT acima adere oficialmente à plataforma NampulaExpress.</p>
+          <p><strong>2. TAXA MENSAL:</strong> O estabelecimento compromete-se ao pagamento da mensalidade correspondente à sua categoria para manter a sua vitrine ativa.</p>
+          <p><strong>3. COMPROMISSO DE RESERVA (30%) E PRESTAÇÕES:</strong> Todo o artigo reservado com 30% de sinal pelo cliente deve ser imediatamente separado em stock reservado pelo prazo de 30 dias até à liquidação total das prestações.</p>
+        </div>
+        <label class="flex items-center space-x-2 text-xs pt-1 cursor-pointer">
+          <input type="checkbox" id="regContractAccept">
+          <span>Assino digitalmente este contrato e declaro que as informações e o NUIT são verdadeiros.</span>
+        </label>
+      </div>
+
+      <!-- DADOS REAIS DO DONO DO SITE PARA RECEBER A TAXA MENSAL -->
+      <div class="bg-orange-50 p-4 rounded-xl border border-orange-300 space-y-2 text-xs">
+        <div class="font-bold text-orange-900 text-sm">Pagamento da Taxa Mensal de Domiciliação: <span id="feeDisplay" class="text-red-600">1.500 MT</span></div>
+        <p class="text-gray-700">Transfira o valor da mensalidade para uma das contas oficiais da administração do <strong>NampulaExpress</strong> abaixo:</p>
+        <div class="bg-white p-2.5 rounded border text-gray-800 space-y-1 font-medium">
+          <div><i class="fa-solid fa-mobile-screen text-red-600 mr-1"></i> <strong>M-Pesa Oficial:</strong> <span id="adminMpesaDisplay"></span></div>
+          <div><i class="fa-solid fa-wallet text-orange-600 mr-1"></i> <strong>e-Mola Oficial:</strong> <span id="adminEmolaDisplay"></span></div>
+          <div><i class="fa-brands fa-cc-visa text-blue-600 mr-1"></i> <strong>Conta / NIB (Visa/Transferência):</strong> <span id="adminBankDisplay"></span></div>
+        </div>
+        <div>
+          <label class="font-bold text-gray-800 block mt-2">Insira o Código / ID da Transação do SMS (M-Pesa, e-Mola ou Talão Bancário):</label>
+          <input type="text" id="regTxId" placeholder="Ex: 8JDS92K1L (Obrigatório para validação)" class="w-full border-2 border-orange-400 rounded-lg p-2 mt-1 font-mono uppercase">
+        </div>
+      </div>
+
+      <button onclick="submitVendorRegistration()" class="w-full bg-gray-900 hover:bg-black text-white py-3 rounded-xl font-bold text-xs uppercase tracking-wider">
+        <i class="fa-solid fa-check-double mr-1"></i> Assinar Contrato e Enviar Comprovativo da Mensalidade
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL 2: ÁREA DA LOJA PARA PUBLICAR NOVOS PRODUTOS / PRATOS / QUARTOS -->
+  <div id="vendorPostModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 my-8">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div>
+          <span class="text-xs font-bold text-green-600 uppercase">Área Exclusiva de Lojas Domiciliadas</span>
+          <h3 class="text-lg font-bold">Publicar Novo Artigo, Prato ou Quarto</h3>
+        </div>
+        <button onclick="closeModal('vendorPostModal')" class="text-gray-400 hover:text-gray-700 text-xl">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="font-bold text-gray-700">Digite o NUIT da Sua Loja Registada:</label>
+          <input type="text" id="postNuit" placeholder="O sistema vai verificar se a sua mensalidade está em dia" class="w-full border rounded-lg p-2 mt-1">
+        </div>
+        <div>
+          <label class="font-bold text-gray-700">Nome do Produto / Prato / Quarto de Hotel:</label>
+          <input type="text" id="postTitle" placeholder="Ex: Ténis Nike Air Force / Quarto Executivo Casal" class="w-full border rounded-lg p-2 mt-1">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-bold text-gray-700">Preço Real (em MT):</label>
+            <input type="number" id="postPrice" placeholder="Ex: 3500" class="w-full border rounded-lg p-2 mt-1">
+          </div>
+          <div>
+            <label class="font-bold text-gray-700">Quantidade / Vagas em Stock:</label>
+            <input type="number" id="postStock" value="5" class="w-full border rounded-lg p-2 mt-1">
+          </div>
+        </div>
+        <div>
+          <label class="font-bold text-gray-700">Link da Foto Real do Produto (Opcional - URL da Imagem):</label>
+          <input type="url" id="postImageUrl" placeholder="https://exemplo.com/foto-do-produto.jpg" class="w-full border rounded-lg p-2 mt-1">
+        </div>
+      </div>
+
+      <button onclick="publishRealProduct()" class="w-full ali-gradient text-white py-3 rounded-xl font-bold text-xs uppercase tracking-wider">
+        <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Publicar na Vitrine de Nampula
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL 3: CHECKOUT DE COMPRA / RESERVA DE 30% / PRESTAÇÕES COM CONTAS REAIS -->
+  <div id="checkoutModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 my-8">
+      <div class="flex justify-between items-start border-b pb-3">
+        <div>
+          <span id="modalItemStore" class="text-xs font-bold text-orange-600 uppercase"></span>
+          <h3 id="modalItemTitle" class="text-lg font-bold text-gray-900"></h3>
+        </div>
+        <button onclick="closeModal('checkoutModal')" class="text-gray-400 hover:text-gray-700 text-xl">&times;</button>
+      </div>
+
+      <div id="hotelBookingFields" class="hidden bg-blue-50 p-3 rounded-xl border border-blue-200 space-y-2 text-xs">
+        <div class="font-bold text-blue-800"><i class="fa-solid fa-calendar-days mr-1"></i> Data da Marcação / Check-in:</div>
+        <input type="date" id="checkinDate" class="w-full border rounded p-1.5">
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 text-xs">
+        <label class="border-2 rounded-xl p-2 cursor-pointer border-orange-500 bg-orange-50/40">
+          <input type="radio" name="payMode" value="reserva_30" checked onchange="updateCheckoutCalc()" class="hidden">
+          <span class="font-bold text-orange-700 block">Guardar (30%)</span>
+          <span class="text-[10px] text-gray-600">70% ao levantar</span>
+        </label>
+        <label class="border-2 rounded-xl p-2 cursor-pointer border-gray-200">
+          <input type="radio" name="payMode" value="prestacoes" onchange="updateCheckoutCalc()" class="hidden">
+          <span class="font-bold text-blue-700 block">Prestações</span>
+          <span class="text-[10px] text-gray-600">30% + 3 parcelas</span>
+        </label>
+        <label class="border-2 rounded-xl p-2 cursor-pointer border-gray-200">
+          <input type="radio" name="payMode" value="total_100" onchange="updateCheckoutCalc()" class="hidden">
+          <span class="font-bold text-green-700 block">Total (100%)</span>
+          <span class="text-[10px] text-gray-600">Entrega direta</span>
+        </label>
+      </div>
+
+      <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200 space-y-1.5 text-sm">
+        <div class="flex justify-between">
+          <span class="text-gray-600">Preço Total na Loja:</span>
+          <span id="calcTotal" class="font-bold">0 MT</span>
+        </div>
+        <div class="flex justify-between text-orange-600 font-bold text-base border-t pt-1.5">
+          <span id="calcNowLabel">Transferir Agora (30%):</span>
+          <span id="calcNowValue">0 MT</span>
+        </div>
+        <div class="flex justify-between text-xs text-gray-500">
+          <span>Saldo Restante:</span>
+          <span id="calcRemaining">0 MT</span>
+        </div>
+      </div>
+
+      <!-- DADOS REAIS PARA TRANSFERÊNCIA DO CLIENTE -->
+      <div class="space-y-2 text-xs">
+        <label class="font-bold uppercase text-gray-600 block">1. Escolha como vai pagar:</label>
+        <div class="grid grid-cols-3 gap-2 font-bold">
+          <button type="button" onclick="selectGateway('M-Pesa')" class=" border-2 border-red-600 bg-red-50 text-red-700 py-2 rounded-lg">M-Pesa</button>
+          <button type="button" onclick="selectGateway('e-Mola')" class="border border-gray-300 py-2 rounded-lg text-gray-700">e-Mola</button>
+          <button type="button" onclick="selectGateway('Visa')" class="border border-gray-300 py-2 rounded-lg text-gray-700">Visa / NIB</button>
+        </div>
+
+        <div class="bg-green-50 border border-green-300 p-3 rounded-xl text-gray-800 space-y-1">
+          <div class="font-bold text-green-900"><i class="fa-solid fa-money-bill-transfer mr-1"></i> Dados Reais para Transferência (<span id="selectedGwName">M-Pesa</span>):</div>
+          <div id="realDestinationAccount" class="text-sm font-extrabold text-gray-900"></div>
+          <p class="text-[11px] text-gray-600">Efetue a transferência do valor acima no seu telemóvel e insira os dados de confirmação abaixo.</p>
+        </div>
+
+        <input type="text" id="clientPhoneOrder" placeholder="Seu Número de Telefone (ex: 84 123 4567)" class="w-full border rounded-lg px-3 py-2 text-sm">
+        <input type="text" id="clientTxIdOrder" placeholder="Código / ID da Transação do SMS M-Pesa / e-Mola (Obrigatório)" class="w-full border-2 border-orange-400 rounded-lg px-3 py-2 text-sm font-mono uppercase">
+      </div>
+
+      <button onclick="confirmOrder()" class="w-full ali-gradient text-white py-3 rounded-xl font-bold text-sm shadow">
+        <i class="fa-solid fa-lock mr-1"></i> Registar Pagamento e Reservar Artigo
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL 4: MINHAS RESERVAS E PRESTAÇÕES -->
+  <div id="installmentsModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 my-8">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-bold"><i class="fa-solid fa-list-check text-orange-600 mr-2"></i> Minhas Reservas (30%) e Prestações</h3>
+        <button onclick="closeModal('installmentsModal')" class="text-gray-400 hover:text-gray-700 text-xl">&times;</button>
+      </div>
+      <div id="reservationsList" class="space-y-3 max-h-96 overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <!-- MODAL 5: CONTA CLIENTE -->
+  <div id="authModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-base">Identificação do Cliente</h3>
+        <button onclick="closeModal('authModal')" class="text-gray-400 hover:text-gray-700 text-xl">&times;</button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <input type="text" id="clientNameInput" placeholder="Seu Nome Completo" class="w-full border rounded-lg p-2">
+        <input type="text" id="clientPhoneInput" placeholder="Seu Telefone (84/85/86/87)" class="w-full border rounded-lg p-2">
+        <button onclick="loginClient()" class="w-full ali-gradient text-white py-2.5 rounded-lg font-bold">Guardar Sessão</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================================
+    // 1. CONFIGURA AQUI OS TEUS NÚMEROS REAIS (ONDE VAIS RECEBER AS MENSALIDADES)
+    // ============================================================================
+    const CONTAS_OFICIAIS_PLATAFORMA = {
+      mpesa: "85 5970 469 (Ivan Dicson Unipessoal)",
+      emola: "87 5000 090 (Ivan Dicson Unipessoal)",
+      visa_nib: "0001 0000 0000 0000 0000 0 (Millennium BIM / BCI - Ivan Dicson)"
+    };
+
+    // Ligação oficial ao teu servidor Supabase
+    const SUPABASE_URL = 'https://uzyqbmmsejtcmyrdjqgc.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_6hJFNEg2ERhYwZupjNiEg_LUeR-u10';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentCategory = 'todos';
+    let selectedProduct = null;
+    let selectedGateway = 'M-Pesa';
+    let products = [];
+    let reservations = [];
+
+    document.getElementById('adminMpesaDisplay').innerText = CONTAS_OFICIAIS_PLATAFORMA.mpesa;
+    document.getElementById('adminEmolaDisplay').innerText = CONTAS_OFICIAIS_PLATAFORMA.emola;
+    document.getElementById('adminBankDisplay').innerText = CONTAS_OFICIAIS_PLATAFORMA.visa_nib;
+
+    function formatMT(val) {
+      return Number(val).toLocaleString('pt-MZ') + ' MT';
+    }
+
+    function updateVendorFee() {
+      const sel = document.getElementById('regCategory');
+      const fee = sel.options[sel.selectedIndex].dataset.fee;
+      document.getElementById('feeDisplay').innerText = formatMT(fee);
+    }
+
+    async function fetchFromSupabase() {
+      const { data: itens } = await supabaseClient
+        .from('catalogo_itens')
+        .select('*')
+        .order('id', { ascending: false });
+
+      products = itens || [];
+      renderProducts();
+
+      const { data: resv } = await supabaseClient
+        .from('reservas_pedidos')
+        .select('*')
+        .order('id', { ascending: false });
+
+      reservations = resv || [];
+      document.getElementById('activeReservationsBadge').innerText = reservations.length;
+      renderReservations();
+    }
+
+    function renderProducts() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const bairro = document.getElementById('bairroFilter').value;
+      const grid = document.getElementById('productsGrid');
+      grid.innerHTML = '';
+
+      const filtered = products.filter(p => {
+        const matchCat = currentCategory === 'todos' || p.category === currentCategory;
+        const matchBairro = bairro === 'todos' || p.bairro === bairro;
+        const matchSearch = (p.title || '').toLowerCase().includes(search) || (p.store || '').toLowerCase().includes(search);
+        return matchCat && matchBairro && matchSearch;
+      });
+
+      document.getElementById('resultsCount').innerText = filtered.length + ' artigos publicados por lojas reais';
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full bg-white rounded-2xl p-10 text-center border border-dashed border-gray-300 space-y-3">
+            <i class="fa-solid fa-store text-4xl text-orange-500"></i>
+            <h3 class="text-base font-bold text-gray-800">Vitrine Pronta para as Lojas e Hotéis de Nampula!</h3>
+            <p class="text-xs text-gray-500 max-w-md mx-auto">Todos os produtos fictícios foram removidos. As empresas domiciliadas já podem clicar em <strong>"1. Registar Minha Empresa"</strong> e depois em <strong>"2. Publicar Artigo"</strong> no topo do site.</p>
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(p => {
+        const signal30 = Math.round(p.price * 0.30);
+        const isHotel = p.category === 'hoteis';
+        const mediaHtml = (p.icon && p.icon.startsWith('http'))
+          ? `<img src="${p.icon}" class="w-full h-40 object-cover" alt="${p.title}">`
+          : `<div class="bg-orange-50 text-orange-600 h-40 flex items-center justify-center"><i class="fa-solid ${p.icon || 'fa-bag-shopping'} text-5xl"></i></div>`;
+
+        grid.innerHTML += `
+          <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition border border-gray-200 overflow-hidden flex flex-col justify-between">
+            <div>
+              <div class="relative">
+                ${mediaHtml}
+                <span class="absolute top-2 left-2 bg-gray-900/85 text-white text-[10px] px-2.5 py-0.5 rounded-full">
+                  <i class="fa-solid fa-location-dot text-orange-400 mr-1"></i>${p.bairro}
+                </span>
+                <span class="absolute bottom-2 right-2 bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">
+                  Sinal 30%: ${formatMT(signal30)}
+                </span>
+              </div>
+              <div class="p-4 space-y-1">
+                <div class="text-[11px] text-gray-500 font-bold uppercase truncate"><i class="fa-solid fa-check-circle text-blue-500 mr-1"></i>${p.store}</div>
+                <h3 class="font-bold text-sm text-gray-900 line-clamp-2 h-10">${p.title}</h3>
+                <div class="pt-1 flex items-baseline justify-between">
+                  <span class="text-lg font-extrabold text-red-600">${formatMT(p.price)}</span>
+                  <span class="text-[11px] text-gray-500">Stock: ${p.stock}</span>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 bg-gray-50 border-t">
+              <button onclick="openCheckout(${p.id})" class="w-full ali-gradient text-white text-xs font-bold py-2.5 rounded-xl">
+                ${isHotel ? 'Fazer Marcação (30%)' : 'Guardar c/ 30% ou Comprar'}
+              </button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // PASSO 1: REGISTO REAL DE EMPRESA E PAGAMENTO DA TAXA MENSAL
+    async function submitVendorRegistration() {
+      const name = document.getElementById('regName').value.trim();
+      const nuit = document.getElementById('regNuit').value.trim();
+      const selCat = document.getElementById('regCategory');
+      const cat = selCat.value;
+      const fee = Number(selCat.options[selCat.selectedIndex].dataset.fee);
+      const bairro = document.getElementById('regBairro').value;
+      const mpesa = document.getElementById('regStoreMpesa').value.trim();
+      const emola = document.getElementById('regStoreEmola').value.trim();
+      const iban = document.getElementById('regStoreIban').value.trim();
+      const accepted = document.getElementById('regContractAccept').checked;
+      const txId = document.getElementById('regTxId').value.trim().toUpperCase();
+
+      if (!name || !nuit || !mpesa || !accepted || txId.length < 5) {
+        alert('Por favor, preencha todos os dados da empresa, o número M-Pesa da loja, aceite o Contrato Digital e insira o Código de Transação real do pagamento da mensalidade.');
+        return;
+      }
+
+      const { error } = await supabaseClient.from('estabelecimentos').insert([{
+        nome_empresa: name,
+        nuit: nuit,
+        categoria: cat,
+        bairro_nampula: bairro,
+        taxa_mensal_mt: fee,
+        telefone_mpesa: mpesa,
+        telefone_emola: emola,
+        conta_visa_iban: iban,
+        ref_pagamento_taxa: txId,
+        mensalidade_em_dia: true, // Podes mudar para false se quiseres aprovar manualmente no Admin antes de a loja publicar
+        contrato_assinado: true
+      }]);
+
+      if (error) {
+        alert('Erro ao registar loja: ' + error.message);
+        return;
+      }
+
+      closeModal('vendorRegisterModal');
+      alert('Empresa "' + name + '" registada com sucesso com o comprovativo ' + txId + '! Agora já pode publicar os seus artigos clicando em "2. Publicar Artigo" usando o seu NUIT (' + nuit + ').');
+      openModal('vendorPostModal');
+      document.getElementById('postNuit').value = nuit;
+    }
+
+    // PASSO 2: LOJA PUBLICA ARTIGOS REAIS VERIFICANDO O NUIT E MENSALIDADE
+    async function publishRealProduct() {
+      const nuit = document.getElementById('postNuit').value.trim();
+      const title = document.getElementById('postTitle').value.trim();
+      const price = Number(document.getElementById('postPrice').value);
+      const stock = Number(document.getElementById('postStock').value);
+      const imgUrl = document.getElementById('postImageUrl').value.trim();
+
+      if (!nuit || !title || !price) {
+        alert('Informe o NUIT da loja registada, o nome do artigo e o preço.');
+        return;
+      }
+
+      // Verifica na Base de Dados se a empresa existe e se a mensalidade está em dia
+      const { data: loja, error: errLoja } = await supabaseClient
+        .from('estabelecimentos')
+        .select('*')
+        .eq('nuit', nuit)
+        .single();
+
+      if (errLoja || !loja) {
+        alert('Nenhuma loja encontrada com este NUIT. Registe primeiro a empresa no botão "1. Registar Minha Empresa".');
+        return;
+      }
+
+      if (!loja.mensalidade_em_dia) {
+        alert('A mensalidade da loja "' + loja.nome_empresa + '" encontra-se pendente ou bloqueada pela Administração.');
+        return;
+      }
+
+      const defaultIcon = loja.categoria === 'hoteis' ? 'fa-bed' : (loja.categoria === 'comida' ? 'fa-utensils' : 'fa-bag-shopping');
+
+      const { error } = await supabaseClient.from('catalogo_itens').insert([{
+        estabelecimento_id: loja.id,
+        title: title,
+        store: loja.nome_empresa,
+        bairro: loja.bairro_nampula,
+        category: loja.categoria,
+        price: price,
+        stock: stock,
+        icon: imgUrl || defaultIcon,
+        loja_mpesa: loja.telefone_mpesa,
+        loja_emola: loja.telefone_emola,
+        loja_iban: loja.conta_visa_iban
+      }]);
+
+      if (error) {
+        alert('Erro ao publicar: ' + error.message);
+        return;
+      }
+
+      closeModal('vendorPostModal');
+      document.getElementById('postTitle').value = '';
+      document.getElementById('postPrice').value = '';
+      document.getElementById('postImageUrl').value = '';
+      fetchFromSupabase();
+      alert('Artigo publicado com sucesso na vitrine oficial de Nampula!');
+    }
+
+    function openCheckout(id) {
+      selectedProduct = products.find(p => p.id === id);
+      document.getElementById('modalItemStore').innerText = selectedProduct.store + ' (' + selectedProduct.bairro + ')';
+      document.getElementById('modalItemTitle').innerText = selectedProduct.title;
+
+      const hotelBox = document.getElementById('hotelBookingFields');
+      if (selectedProduct.category === 'hoteis' || selectedProduct.category === 'comida') {
+        hotelBox.classList.remove('hidden');
+      } else {
+        hotelBox.classList.add('hidden');
+      }
+
+      updateCheckoutCalc();
+      selectGateway('M-Pesa');
+      openModal('checkoutModal');
+    }
+
+    function updateCheckoutCalc() {
+      if (!selectedProduct) return;
+      const mode = document.querySelector('input[name="payMode"]:checked').value;
+      const total = selectedProduct.price;
+      const signal30 = Math.round(total * 0.30);
+      const rem70 = total - signal30;
+
+      document.getElementById('calcTotal').innerText = formatMT(total);
+      if (mode === 'total_100') {
+        document.getElementById('calcNowLabel').innerText = 'Transferir Total (100%):';
+        document.getElementById('calcNowValue').innerText = formatMT(total);
+        document.getElementById('calcRemaining').innerText = '0 MT';
+      } else {
+        document.getElementById('calcNowLabel').innerText = 'Transferir Sinal (30%):';
+        document.getElementById('calcNowValue').innerText = formatMT(signal30);
+        document.getElementById('calcRemaining').innerText = formatMT(rem70);
+      }
+    }
+
+    function selectGateway(gw) {
+      selectedGateway = gw;
+      document.getElementById('selectedGwName').innerText = gw;
+      const destBox = document.getElementById('realDestinationAccount');
+      if (!selectedProduct) return;
+
+      if (gw === 'M-Pesa') {
+        destBox.innerText = 'M-Pesa: ' + (selectedProduct.loja_mpesa || CONTAS_OFICIAIS_PLATAFORMA.mpesa);
+      } else if (gw === 'e-Mola') {
+        destBox.innerText = 'e-Mola: ' + (selectedProduct.loja_emola || CONTAS_OFICIAIS_PLATAFORMA.emola);
+      } else {
+        destBox.innerText = 'Conta / NIB Visa: ' + (selectedProduct.loja_iban || CONTAS_OFICIAIS_PLATAFORMA.visa_nib);
+      }
+    }
+
+    async function confirmOrder() {
+      const phone = document.getElementById('clientPhoneOrder').value.trim();
+      const txId = document.getElementById('clientTxIdOrder').value.trim().toUpperCase();
+
+      if (!phone || txId.length < 5) {
+        alert('Insira o seu número de telefone e o Código/ID real da transação M-Pesa, e-Mola ou talão Visa.');
+        return;
+      }
+
+      const mode = document.querySelector('input[name="payMode"]:checked').value;
+      const total = selectedProduct.price;
+      const paidNow = mode === 'total_100' ? total : Math.round(total * 0.30);
+      const codeVoucher = 'NPL-' + Math.floor(100000 + Math.random() * 900000);
+
+      const novaReserva = {
+        code: codeVoucher,
+        title: selectedProduct.title,
+        store: selectedProduct.store,
+        total: total,
+        paid: paidNow,
+        gateway: selectedGateway,
+        cliente_telefone: phone,
+        ref_transacao: txId,
+        status_confirmacao: 'Comprovativo Recebido (' + txId + ')'
+      };
+
+      const { error } = await supabaseClient.from('reservas_pedidos').insert([novaReserva]);
+      if (error) {
+        alert('Erro ao registar reserva: ' + error.message);
+        return;
+      }
+
+      // Reduz 1 unidade do stock real da loja
+      if (selectedProduct.stock > 0) {
+        await supabaseClient
+          .from('catalogo_itens')
+          .update({ stock: selectedProduct.stock - 1 })
+          .eq('id', selectedProduct.id);
+      }
+
+      document.getElementById('clientTxIdOrder').value = '';
+      closeModal('checkoutModal');
+      fetchFromSupabase();
+      openModal('installmentsModal');
+    }
+
+    function renderReservations() {
+      const list = document.getElementById('reservationsList');
+      if (reservations.length === 0) {
+        list.innerHTML = '<p class="text-xs text-gray-500 text-center py-6">Nenhuma reserva ou prestação registada no momento.</p>';
+        return;
+      }
+
+      list.innerHTML = '';
+      reservations.forEach(r => {
+        const pct = Math.min(100, Math.round((r.paid / r.total) * 100));
+        const rem = r.total - r.paid;
+        list.innerHTML += `
+          <div class="border rounded-xl p-4 bg-gray-50 space-y-2 text-xs">
+            <div class="flex justify-between items-center">
+              <span class="font-bold text-orange-600">Voucher: ${r.code} — ${r.store}</span>
+              <span class="px-2 py-0.5 rounded-full font-bold bg-green-100 text-green-800">Ref: ${r.ref_transacao || 'Validado'}</span>
+            </div>
+            <div class="font-bold text-sm text-gray-900">${r.title}</div>
+            <div class="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden">
+              <div class="bg-green-600 h-full" style="width: ${pct}%"></div>
+            </div>
+            <div class="flex justify-between text-gray-600">
+              <span>Pago: <strong>${formatMT(r.paid)}</strong> (${r.gateway})</span>
+              <span>Saldo Restante: <strong>${formatMT(rem)}</strong></span>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function filterCategory(cat) {
+      currentCategory = cat;
+      renderProducts();
+    }
+
+    function loginClient() {
+      const name = document.getElementById('clientNameInput').value.trim();
+      if (!name) return;
+      document.getElementById('userStatusBtn').innerHTML = '<i class="fa-solid fa-circle-check text-green-400 mr-1"></i> ' + name;
+      closeModal('authModal');
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.remove('hidden');
+      document.getElementById(id).classList.add('flex');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+      document.getElementById(id).classList.remove('flex');
+    }
+
+    fetchFromSupabase();
+  </script>
+</body>
+</html>
